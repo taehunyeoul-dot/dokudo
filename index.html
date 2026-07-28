@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>다독 서가 — 일본어 다독</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,23 +15,30 @@
     background: #F1EAD9;
     color: #22201B;
     font-family: 'Noto Sans KR', sans-serif;
+    overflow-x: hidden;               /* 화면이 옆으로 밀리지 않게 */
+    touch-action: manipulation;       /* 두 번 탭 확대 방지 */
+    -webkit-text-size-adjust: 100%;
   }
   .mincho { font-family: 'Zen Old Mincho', serif; }
   .wrap { max-width: 28rem; margin: 0 auto; padding: 0 1.5rem; }
   button { font-family: inherit; }
+  button, .tok-tap, .kana-tile, .kana-word {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .reader-text, .kana-grid, .kana-words, .shelf-row, .toc { touch-action: manipulation; }
 
   /* ---------- 책장 화면 ---------- */
   .shelf-page { padding-top: 2.5rem; padding-bottom: 1.5rem; }
   .shelf-kicker { font-size: 0.875rem; letter-spacing: 0.2em; color: #8a8374; margin: 0; }
   .shelf-title { font-size: 1.5rem; font-weight: 600; margin: 0.25rem 0 0; }
   .shelf-desc { font-size: 0.875rem; line-height: 1.7; color: #57503f; margin: 0.5rem 0 0; }
-  .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.75rem; color: #57503f; }
-  .legend span { display: flex; align-items: center; gap: 0.25rem; }
-  .legend i { width: 10px; height: 10px; display: inline-block; border-radius: 2px; }
-
-  .bookshelf { margin-top: 2.5rem; position: relative; }
-  .spines { display: flex; align-items: flex-end; justify-content: center; gap: 0.75rem; padding-bottom: 0.5rem; }
-  .spine-col { display: flex; flex-direction: column; align-items: center; }
+  .shelf-section { margin-top: 2rem; }
+  .shelf-label { font-size: 0.75rem; color: #57503f; margin: 0 0 0.75rem; }
+  .shelf-row { display: flex; align-items: flex-end; gap: 0.75rem; padding-bottom: 0.5rem; overflow-x: auto; }
+  .spine-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
   .spine-check { color: #B23A2E; font-size: 0.8rem; margin-bottom: 4px; line-height: 1; }
   .spine {
     color: #F1EAD9;
@@ -47,7 +54,6 @@
   }
   .shelf-wood-top { height: 14px; background: #4A3B2A; border-radius: 0 0 4px 4px; }
   .shelf-wood-bottom { height: 6px; background: #382c20; border-radius: 0 0 4px 4px; }
-  .shelf-hint { font-size: 0.75rem; margin-top: 1.5rem; text-align: center; color: #8a8374; }
   .shelf-note { font-size: 0.7rem; margin-top: 2rem; text-align: center; color: #b0a78f; }
 
   /* ---------- 리더 화면 ---------- */
@@ -176,6 +182,134 @@ const BOOKS = [
     ],
   },
   {
+    id: "l1-dog",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "いぬの さんぽ",
+    subtitle: "강아지 산책",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "いぬ", g: "개" }, { t: "が" }, { t: "います", g: "있어요" }, { t: "。" }],
+      [{ t: "いぬ", g: "개" }, { t: "は" }, { t: "くろい", g: "까맣다" }, { t: "です" }, { t: "。" }],
+      [{ t: "まいにち", g: "매일" }, { t: "いぬ", g: "개" }, { t: "と" }, { t: "さんぽ", g: "산책" }, { t: "を" }, { t: "します", g: "해요" }, { t: "。" }],
+      [{ t: "こうえん", g: "공원" }, { t: "まで" }, { t: "あるきます", g: "걸어요" }, { t: "。" }],
+      [{ t: "いぬ", g: "개" }, { t: "は" }, { t: "さんぽ", g: "산책" }, { t: "が" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+      [{ t: "わたし", g: "나" }, { t: "も" }, { t: "さんぽ", g: "산책" }, { t: "が" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-lunch",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "おひるの うどん",
+    subtitle: "점심 우동",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "おひる", g: "점심" }, { t: "です" }, { t: "。" }],
+      [{ t: "きょう", g: "오늘" }, { t: "は" }, { t: "うどん", g: "우동" }, { t: "を" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "うどん", g: "우동" }, { t: "は" }, { t: "あたたかい", g: "따뜻하다" }, { t: "です" }, { t: "。" }],
+      [{ t: "ともだち", g: "친구" }, { t: "も" }, { t: "うどん", g: "우동" }, { t: "を" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "みんな", g: "모두" }, { t: "で" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "とても", g: "아주" }, { t: "おいしい", g: "맛있다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-rain",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "あめの ひ",
+    subtitle: "비 오는 날",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "きょう", g: "오늘" }, { t: "は" }, { t: "あめ", g: "비" }, { t: "です" }, { t: "。" }],
+      [{ t: "あさ", g: "아침" }, { t: "から" }, { t: "あめ", g: "비" }, { t: "が" }, { t: "ふります", g: "내려요" }, { t: "。" }],
+      [{ t: "わたし", g: "나" }, { t: "は" }, { t: "かさ", g: "우산" }, { t: "を" }, { t: "もちます", g: "챙겨요" }, { t: "。" }],
+      [{ t: "そと", g: "바깥" }, { t: "は" }, { t: "さむい", g: "춥다" }, { t: "です" }, { t: "。" }],
+      [{ t: "いえ", g: "집" }, { t: "で" }, { t: "ほん", g: "책" }, { t: "を" }, { t: "よみます", g: "읽어요" }, { t: "。" }],
+      [{ t: "あめ", g: "비" }, { t: "の" }, { t: "ひ", g: "날" }, { t: "も" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-tea",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "おちゃの じかん",
+    subtitle: "차 마시는 시간",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "ごご", g: "오후" }, { t: "、" }, { t: "おちゃ", g: "차" }, { t: "を" }, { t: "のみます", g: "마셔요" }, { t: "。" }],
+      [{ t: "あまい", g: "달다" }, { t: "おかし", g: "과자" }, { t: "も" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "おちゃ", g: "차" }, { t: "は" }, { t: "あつい", g: "뜨겁다" }, { t: "です" }, { t: "。" }],
+      [{ t: "ゆっくり", g: "천천히" }, { t: "のみます", g: "마셔요" }, { t: "。" }],
+      [{ t: "おちゃ", g: "차" }, { t: "の" }, { t: "じかん", g: "시간" }, { t: "は" }, { t: "たのしい", g: "즐겁다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-morning",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "あさの まど",
+    subtitle: "아침 창문",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "あさ", g: "아침" }, { t: "、" }, { t: "はやく", g: "일찍" }, { t: "おきます", g: "일어나요" }, { t: "。" }],
+      [{ t: "まど", g: "창문" }, { t: "を" }, { t: "あけます", g: "열어요" }, { t: "。" }],
+      [{ t: "あさ", g: "아침" }, { t: "の" }, { t: "くうき", g: "공기" }, { t: "は" }, { t: "おいしい", g: "맛있다" }, { t: "です" }, { t: "。" }],
+      [{ t: "そら", g: "하늘" }, { t: "が" }, { t: "あおい", g: "파랗다" }, { t: "です" }, { t: "。" }],
+      [{ t: "みず", g: "물" }, { t: "を" }, { t: "のみます", g: "마셔요" }, { t: "。" }],
+      [{ t: "きょう", g: "오늘" }, { t: "も" }, { t: "げんき", g: "기운참" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-cat2",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "ねこと あそびます",
+    subtitle: "고양이와 놀아요",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "ねこ", g: "고양이" }, { t: "が" }, { t: "きます", g: "와요" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "と" }, { t: "あそびます", g: "놀아요" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "は" }, { t: "おもちゃ", g: "장난감" }, { t: "が" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "は" }, { t: "はやい", g: "빠르다" }, { t: "です" }, { t: "。" }],
+      [{ t: "たくさん", g: "많이" }, { t: "あそびます", g: "놀아요" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "は" }, { t: "ねます", g: "자요" }, { t: "。" }],
+      [{ t: "わたし", g: "나" }, { t: "も" }, { t: "ねます", g: "자요" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-shopping",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "かいもの",
+    subtitle: "장보기",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "みせ", g: "가게" }, { t: "に" }, { t: "いきます", g: "가요" }, { t: "。" }],
+      [{ t: "りんご", g: "사과" }, { t: "を" }, { t: "かいます", g: "사요" }, { t: "。" }],
+      [{ t: "さかな", g: "생선" }, { t: "も" }, { t: "かいます", g: "사요" }, { t: "。" }],
+      [{ t: "たまご", g: "계란" }, { t: "も" }, { t: "かいます", g: "사요" }, { t: "。" }],
+      [{ t: "たくさん", g: "많이" }, { t: "かいます", g: "사요" }, { t: "。" }],
+      [{ t: "かばん", g: "가방" }, { t: "が" }, { t: "おもい", g: "무겁다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-night",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "よるの そら",
+    subtitle: "밤하늘",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "よる", g: "밤" }, { t: "です" }, { t: "。" }],
+      [{ t: "そら", g: "하늘" }, { t: "を" }, { t: "みます", g: "봐요" }, { t: "。" }],
+      [{ t: "つき", g: "달" }, { t: "が" }, { t: "あかるい", g: "밝다" }, { t: "です" }, { t: "。" }],
+      [{ t: "ほし", g: "별" }, { t: "も" }, { t: "みえます", g: "보여요" }, { t: "。" }],
+      [{ t: "とても", g: "아주" }, { t: "きれい", g: "예쁨" }, { t: "です" }, { t: "。" }],
+      [{ t: "よる", g: "밤" }, { t: "の" }, { t: "そら", g: "하늘" }, { t: "が" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
     id: "l2-sunday",
     level: 2,
     levelLabel: "레벨 2 · 기초 한자 도입",
@@ -200,7 +334,132 @@ const BOOKS = [
       [{ t: "今日", r: "きょう", g: "오늘" }, { t: "、" }, { t: "友達", r: "ともだち", g: "친구" }, { t: "と" }, { t: "公園", r: "こうえん", g: "공원" }, { t: "で" }, { t: "会いました", r: "あいました", g: "만났어요" }, { t: "。" }],
       [{ t: "一緒に", r: "いっしょに", g: "같이" }, { t: "お弁当", r: "おべんとう", g: "도시락" }, { t: "を" }, { t: "食べました", r: "たべました", g: "먹었어요" }, { t: "。" }],
       [{ t: "とても", g: "아주" }, { t: "楽しかった", r: "たのしかった", g: "즐거웠다" }, { t: "です" }, { t: "。" }],
-      [{ t: "また" }, { t: "来週", r: "らいしゅう", g: "다음 주" }, { t: "会う", r: "あう", g: "만나다" }, { t: "約束", r: "やくそく", g: "약속" }, { t: "を" }, { t: "しました", g: "했어요" }, { t: "。" }],
+      [{ t: "また", g: "또" }, { t: "来週", r: "らいしゅう", g: "다음 주" }, { t: "会う", r: "あう", g: "만나다" }, { t: "約束", r: "やくそく", g: "약속" }, { t: "を" }, { t: "しました", g: "했어요" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-office",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "会社の朝",
+    subtitle: "회사 아침",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "毎朝", r: "まいあさ", g: "매일 아침" }, { t: "、" }, { t: "八時", r: "はちじ", g: "8시" }, { t: "に" }, { t: "会社", r: "かいしゃ", g: "회사" }, { t: "へ" }, { t: "行きます", r: "いきます", g: "가요" }, { t: "。" }],
+      [{ t: "会社", r: "かいしゃ", g: "회사" }, { t: "で" }, { t: "コーヒー", r: "こーひー", g: "커피" }, { t: "を" }, { t: "飲みます", r: "のみます", g: "마셔요" }, { t: "。" }],
+      [{ t: "みんな", g: "모두" }, { t: "と" }, { t: "あいさつ", g: "인사" }, { t: "を" }, { t: "します", g: "해요" }, { t: "。" }],
+      [{ t: "仕事", r: "しごと", g: "일" }, { t: "を" }, { t: "始めます", r: "はじめます", g: "시작해요" }, { t: "。" }],
+      [{ t: "今日", r: "きょう", g: "오늘" }, { t: "も" }, { t: "会社", r: "かいしゃ", g: "회사" }, { t: "の" }, { t: "朝", r: "あさ", g: "아침" }, { t: "は" }, { t: "忙しい", r: "いそがしい", g: "바쁘다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-restaurant",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "昼ご飯の店",
+    subtitle: "점심 식당",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "今日", r: "きょう", g: "오늘" }, { t: "、" }, { t: "友達", r: "ともだち", g: "친구" }, { t: "と" }, { t: "店", r: "みせ", g: "가게" }, { t: "に" }, { t: "行きました", r: "いきました", g: "갔어요" }, { t: "。" }],
+      [{ t: "店", r: "みせ", g: "가게" }, { t: "は" }, { t: "駅", r: "えき", g: "역" }, { t: "の" }, { t: "近く", r: "ちかく", g: "근처" }, { t: "に" }, { t: "あります", g: "있어요" }, { t: "。" }],
+      [{ t: "私", r: "わたし", g: "나" }, { t: "は" }, { t: "カレー", r: "かれー", g: "카레" }, { t: "を" }, { t: "食べました", r: "たべました", g: "먹었어요" }, { t: "。" }],
+      [{ t: "友達", r: "ともだち", g: "친구" }, { t: "は" }, { t: "うどん", g: "우동" }, { t: "を" }, { t: "食べました", r: "たべました", g: "먹었어요" }, { t: "。" }],
+      [{ t: "店", r: "みせ", g: "가게" }, { t: "の" }, { t: "人", r: "ひと", g: "사람" }, { t: "は" }, { t: "親切", r: "しんせつ", g: "친절함" }, { t: "でした" }, { t: "。" }],
+      [{ t: "また", g: "또" }, { t: "この", g: "이" }, { t: "店", r: "みせ", g: "가게" }, { t: "に" }, { t: "来たい", r: "きたい", g: "오고 싶다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-saturday",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "土曜日の買い物",
+    subtitle: "토요일 장보기",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "土曜日", r: "どようび", g: "토요일" }, { t: "に" }, { t: "買い物", r: "かいもの", g: "장보기" }, { t: "に" }, { t: "行きました", r: "いきました", g: "갔어요" }, { t: "。" }],
+      [{ t: "スーパー", r: "すーぱー", g: "슈퍼" }, { t: "で" }, { t: "野菜", r: "やさい", g: "야채" }, { t: "と" }, { t: "魚", r: "さかな", g: "생선" }, { t: "を" }, { t: "買いました", r: "かいました", g: "샀어요" }, { t: "。" }],
+      [{ t: "果物", r: "くだもの", g: "과일" }, { t: "も" }, { t: "買いました", r: "かいました", g: "샀어요" }, { t: "。" }],
+      [{ t: "荷物", r: "にもつ", g: "짐" }, { t: "が" }, { t: "重かった", r: "おもかった", g: "무거웠다" }, { t: "です" }, { t: "。" }],
+      [{ t: "でも", g: "하지만" }, { t: "、" }, { t: "楽しい", r: "たのしい", g: "즐겁다" }, { t: "買い物", r: "かいもの", g: "장보기" }, { t: "でした" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-mycat",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "私の猫",
+    subtitle: "우리 집 고양이",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "私", r: "わたし", g: "나" }, { t: "の" }, { t: "家", r: "いえ", g: "집" }, { t: "に" }, { t: "は" }, { t: "猫", r: "ねこ", g: "고양이" }, { t: "が" }, { t: "います", g: "있어요" }, { t: "。" }],
+      [{ t: "猫", r: "ねこ", g: "고양이" }, { t: "は" }, { t: "毎朝", r: "まいあさ", g: "매일 아침" }, { t: "、" }, { t: "私", r: "わたし", g: "나" }, { t: "を" }, { t: "起こします", r: "おこします", g: "깨워요" }, { t: "。" }],
+      [{ t: "猫", r: "ねこ", g: "고양이" }, { t: "は" }, { t: "ご飯", r: "ごはん", g: "밥" }, { t: "を" }, { t: "待ちます", r: "まちます", g: "기다려요" }, { t: "。" }],
+      [{ t: "私", r: "わたし", g: "나" }, { t: "は" }, { t: "猫", r: "ねこ", g: "고양이" }, { t: "に" }, { t: "ご飯", r: "ごはん", g: "밥" }, { t: "を" }, { t: "あげます", g: "줘요" }, { t: "。" }],
+      [{ t: "猫", r: "ねこ", g: "고양이" }, { t: "は" }, { t: "たくさん", g: "많이" }, { t: "食べます", r: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "かわいい", g: "귀엽다" }, { t: "猫", r: "ねこ", g: "고양이" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-train",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "電車の中",
+    subtitle: "전철 안",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "毎日", r: "まいにち", g: "매일" }, { t: "、" }, { t: "電車", r: "でんしゃ", g: "전철" }, { t: "で" }, { t: "会社", r: "かいしゃ", g: "회사" }, { t: "に" }, { t: "行きます", r: "いきます", g: "가요" }, { t: "。" }],
+      [{ t: "電車", r: "でんしゃ", g: "전철" }, { t: "の" }, { t: "中", r: "なか", g: "안" }, { t: "で" }, { t: "本", r: "ほん", g: "책" }, { t: "を" }, { t: "読みます", r: "よみます", g: "읽어요" }, { t: "。" }],
+      [{ t: "今日", r: "きょう", g: "오늘" }, { t: "は" }, { t: "人", r: "ひと", g: "사람" }, { t: "が" }, { t: "多かった", r: "おおかった", g: "많았다" }, { t: "です" }, { t: "。" }],
+      [{ t: "席", r: "せき", g: "자리" }, { t: "が" }, { t: "ありませんでした", g: "없었어요" }, { t: "。" }],
+      [{ t: "でも", g: "하지만" }, { t: "、" }, { t: "本", r: "ほん", g: "책" }, { t: "は" }, { t: "面白かった", r: "おもしろかった", g: "재미있었다" }, { t: "です" }, { t: "。" }],
+      [{ t: "電車", r: "でんしゃ", g: "전철" }, { t: "の" }, { t: "時間", r: "じかん", g: "시간" }, { t: "が" }, { t: "好き", r: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-curry",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "晩ご飯のカレー",
+    subtitle: "저녁 카레",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "昨日", r: "きのう", g: "어제" }, { t: "、" }, { t: "家", r: "いえ", g: "집" }, { t: "で" }, { t: "晩ご飯", r: "ばんごはん", g: "저녁밥" }, { t: "を" }, { t: "作りました", r: "つくりました", g: "만들었어요" }, { t: "。" }],
+      [{ t: "カレー", r: "かれー", g: "카레" }, { t: "を" }, { t: "作りました", r: "つくりました", g: "만들었어요" }, { t: "。" }],
+      [{ t: "野菜", r: "やさい", g: "야채" }, { t: "を" }, { t: "たくさん", g: "많이" }, { t: "入れました", r: "いれました", g: "넣었어요" }, { t: "。" }],
+      [{ t: "家族", r: "かぞく", g: "가족" }, { t: "と" }, { t: "一緒に", r: "いっしょに", g: "같이" }, { t: "食べました", r: "たべました", g: "먹었어요" }, { t: "。" }],
+      [{ t: "カレー", r: "かれー", g: "카레" }, { t: "は" }, { t: "少し", r: "すこし", g: "조금" }, { t: "辛かった", r: "からかった", g: "매웠다" }, { t: "です" }, { t: "。" }],
+      [{ t: "でも", g: "하지만" }, { t: "、" }, { t: "おいしかった", g: "맛있었다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-nightwalk",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "夜の散歩",
+    subtitle: "밤 산책",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "夜", r: "よる", g: "밤" }, { t: "、" }, { t: "近く", r: "ちかく", g: "근처" }, { t: "の" }, { t: "公園", r: "こうえん", g: "공원" }, { t: "を" }, { t: "散歩", r: "さんぽ", g: "산책" }, { t: "します", g: "해요" }, { t: "。" }],
+      [{ t: "空", r: "そら", g: "하늘" }, { t: "に" }, { t: "月", r: "つき", g: "달" }, { t: "が" }, { t: "ありました", g: "있었어요" }, { t: "。" }],
+      [{ t: "風", r: "かぜ", g: "바람" }, { t: "が" }, { t: "涼しかった", r: "すずしかった", g: "시원했다" }, { t: "です" }, { t: "。" }],
+      [{ t: "犬", r: "いぬ", g: "개" }, { t: "と" }, { t: "散歩", r: "さんぽ", g: "산책" }, { t: "する" }, { t: "人", r: "ひと", g: "사람" }, { t: "も" }, { t: "いました", g: "있었어요" }, { t: "。" }],
+      [{ t: "散歩", r: "さんぽ", g: "산책" }, { t: "の" }, { t: "後", r: "あと", g: "후" }, { t: "は" }, { t: "気持ち", r: "きもち", g: "기분" }, { t: "が" }, { t: "いい", g: "좋다" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-weekend",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "週末の山",
+    subtitle: "주말의 산",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "金曜日", r: "きんようび", g: "금요일" }, { t: "、" }, { t: "友達", r: "ともだち", g: "친구" }, { t: "に" }, { t: "電話", r: "でんわ", g: "전화" }, { t: "を" }, { t: "しました", g: "했어요" }, { t: "。" }],
+      [{ t: "「" }, { t: "週末", r: "しゅうまつ", g: "주말" }, { t: "、" }, { t: "何", r: "なに", g: "무엇" }, { t: "を" }, { t: "します", g: "해요" }, { t: "か" }, { t: "。" }, { t: "」" }],
+      [{ t: "友達", r: "ともだち", g: "친구" }, { t: "は" }, { t: "山", r: "やま", g: "산" }, { t: "に" }, { t: "行きたい", r: "いきたい", g: "가고 싶다" }, { t: "と" }, { t: "言いました", r: "いいました", g: "말했어요" }, { t: "。" }],
+      [{ t: "私たち", r: "わたしたち", g: "우리" }, { t: "は" }, { t: "土曜日", r: "どようび", g: "토요일" }, { t: "に" }, { t: "山", r: "やま", g: "산" }, { t: "へ" }, { t: "行きます", r: "いきます", g: "가요" }, { t: "。" }],
+      [{ t: "お弁当", r: "おべんとう", g: "도시락" }, { t: "も" }, { t: "作ります", r: "つくります", g: "만들어요" }, { t: "。" }],
+      [{ t: "週末", r: "しゅうまつ", g: "주말" }, { t: "が" }, { t: "楽しみ", r: "たのしみ", g: "기대됨" }, { t: "です" }, { t: "。" }],
     ],
   },
 ];
@@ -348,42 +607,43 @@ function renderShelf() {
   currentBook = null;
   activeTokEl = null;
 
-  const kanaSpine =
-    '<div class="spine-col">' +
-    (progress.kana.done ? '<span class="spine-check">✓</span>' : "") +
-    '<button class="spine mincho" lang="ja" data-id="kana" ' +
-    'style="background:' + KANA_BOOK.color + ';height:150px;">' +
-    esc(KANA_BOOK.title) + "</button></div>";
-
-  const spines = kanaSpine + BOOKS.map((book) => {
-    const check = progress.finished[book.id] ? '<span class="spine-check">✓</span>' : "";
-    const height = book.level === 1 ? 170 : 210;
+  function spineCol(id, title, color, height, checked) {
     return (
-      '<div class="spine-col">' + check +
-      '<button class="spine mincho" lang="ja" data-id="' + esc(book.id) + '" ' +
-      'style="background:' + esc(book.color) + ';height:' + height + 'px;">' +
-      esc(book.title) + "</button></div>"
+      '<div class="spine-col">' +
+      (checked ? '<span class="spine-check">✓</span>' : "") +
+      '<button class="spine mincho" lang="ja" data-id="' + esc(id) + '" ' +
+      'style="background:' + esc(color) + ';height:' + height + 'px;">' +
+      esc(title) + "</button></div>"
     );
-  }).join("");
+  }
+
+  function shelfSection(label, spinesHtml) {
+    return (
+      '<div class="shelf-section">' +
+        '<p class="shelf-label">' + label + "</p>" +
+        '<div class="shelf-row">' + spinesHtml + "</div>" +
+        '<div class="shelf-wood-top"></div>' +
+        '<div class="shelf-wood-bottom"></div>' +
+      "</div>"
+    );
+  }
+
+  const level1 = BOOKS.filter((b) => b.level === 1)
+    .map((b) => spineCol(b.id, b.title, b.color, 170, progress.finished[b.id])).join("");
+  const level2 = BOOKS.filter((b) => b.level === 2)
+    .map((b) => spineCol(b.id, b.title, b.color, 210, progress.finished[b.id])).join("");
 
   app.innerHTML =
     '<div class="wrap shelf-page">' +
       '<p class="shelf-kicker mincho" lang="ja">多読</p>' +
       '<h1 class="shelf-title mincho">다독 서가</h1>' +
-      '<p class="shelf-desc">문법 설명 없이, 이해되는 만큼만 읽어보세요. 책등 색이 레벨이에요.</p>' +
-      '<div class="legend">' +
-        '<span><i style="background:#8B5E34"></i>글자책 · 여기부터</span>' +
-        '<span><i style="background:#6B7A5E"></i>레벨1 · 히라가나만</span>' +
-        '<span><i style="background:#2B4570"></i>레벨2 · 기초 한자</span>' +
-      '</div>' +
-      '<div class="bookshelf">' +
-        '<div class="spines">' + spines + '</div>' +
-        '<div class="shelf-wood-top"></div>' +
-        '<div class="shelf-wood-bottom"></div>' +
-      '</div>' +
-      '<p class="shelf-hint">책등을 탭해서 꺼내 읽어보세요</p>' +
+      '<p class="shelf-desc">문법 설명 없이, 이해되는 만큼만 읽어보세요. 책등을 탭해서 꺼내 읽습니다.</p>' +
       (progress.kana.done ? "" :
-        '<p class="shelf-hint" style="color:#8B5E34">일본어가 처음이라면 갈색 글자책 「ひらがな」부터 펼쳐보세요</p>') +
+        '<p class="shelf-desc" style="color:#8B5E34">일본어가 처음이라면 갈색 글자책 「ひらがな」부터 펼쳐보세요.</p>') +
+      shelfSection('0단계 · 글자 떼기',
+        spineCol("kana", KANA_BOOK.title, KANA_BOOK.color, 150, progress.kana.done)) +
+      shelfSection("레벨 1 · 히라가나 그림책", level1) +
+      shelfSection("레벨 2 · 기초 한자 + 후리가나", level2) +
       '<p class="shelf-note">읽은 기록은 이 기기의 브라우저에만 저장돼요</p>' +
     '</div>';
 
@@ -582,6 +842,9 @@ function toggleFinished() {
   btn.classList.toggle("done", done);
   btn.textContent = done ? "✓ 다 읽음" : "다 읽었어요";
 }
+
+// 아이폰 사파리에서 핀치(두 손가락) 확대도 막는다 — 앱처럼 화면 고정
+document.addEventListener("gesturestart", (e) => e.preventDefault());
 
 renderShelf();
 </script>
