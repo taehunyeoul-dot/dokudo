@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>다독 서가 — 일본어 다독</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #F1EAD9;
+    color: #22201B;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .mincho { font-family: 'Zen Old Mincho', serif; }
+  .wrap { max-width: 28rem; margin: 0 auto; padding: 0 1.5rem; }
+  button { font-family: inherit; }
+
+  /* ---------- 책장 화면 ---------- */
+  .shelf-page { padding-top: 2.5rem; padding-bottom: 1.5rem; }
+  .shelf-kicker { font-size: 0.875rem; letter-spacing: 0.2em; color: #8a8374; margin: 0; }
+  .shelf-title { font-size: 1.5rem; font-weight: 600; margin: 0.25rem 0 0; }
+  .shelf-desc { font-size: 0.875rem; line-height: 1.7; color: #57503f; margin: 0.5rem 0 0; }
+  .legend { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.75rem; color: #57503f; }
+  .legend span { display: flex; align-items: center; gap: 0.25rem; }
+  .legend i { width: 10px; height: 10px; display: inline-block; border-radius: 2px; }
+
+  .bookshelf { margin-top: 2.5rem; position: relative; }
+  .spines { display: flex; align-items: flex-end; justify-content: center; gap: 0.75rem; padding-bottom: 0.5rem; }
+  .spine-col { display: flex; flex-direction: column; align-items: center; }
+  .spine-check { color: #B23A2E; font-size: 0.8rem; margin-bottom: 4px; line-height: 1; }
+  .spine {
+    color: #F1EAD9;
+    width: 34px;
+    border-radius: 2px 4px 4px 2px;
+    writing-mode: vertical-rl;
+    letter-spacing: 2px;
+    font-size: 13px;
+    padding: 10px 0;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.18);
+    border: none;
+    cursor: pointer;
+  }
+  .shelf-wood-top { height: 14px; background: #4A3B2A; border-radius: 0 0 4px 4px; }
+  .shelf-wood-bottom { height: 6px; background: #382c20; border-radius: 0 0 4px 4px; }
+  .shelf-hint { font-size: 0.75rem; margin-top: 1.5rem; text-align: center; color: #8a8374; }
+  .shelf-note { font-size: 0.7rem; margin-top: 2rem; text-align: center; color: #b0a78f; }
+
+  /* ---------- 리더 화면 ---------- */
+  .reader-page { padding-top: 2rem; padding-bottom: 6rem; }
+  .back-btn {
+    display: flex; align-items: center; gap: 0.25rem;
+    font-size: 0.875rem; color: #57503f;
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .reader-level { font-size: 0.75rem; letter-spacing: 0.05em; margin: 1.5rem 0 0; }
+  .reader-title { font-size: 1.5rem; font-weight: 600; margin: 0.25rem 0 0; }
+  .reader-subtitle { font-size: 0.875rem; color: #8a8374; margin: 0.25rem 0 0; }
+  .reader-text { margin-top: 2rem; font-size: 19px; line-height: 2.1; }
+  .reader-text p { margin: 0 0 0.9em; }
+  rt { font-size: 0.5em; color: #8a8374; }
+
+  .tok { margin: 0 1px; }
+  .tok-tap {
+    cursor: pointer;
+    border-bottom: 2px dotted #B8AE96;
+    padding-bottom: 1px;
+    transition: border-color 0.15s;
+  }
+  .tok-tap.active { border-bottom: 2px solid #B23A2E; }
+
+  .finish-btn {
+    margin-top: 2rem;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    color: #57503f;
+    border: 1px solid #B8AE96;
+  }
+  .finish-btn.done { background: #B23A2E; color: #F1EAD9; border-color: #B23A2E; }
+
+  /* ---------- 0단계 글자책 ---------- */
+  .kana-desc { font-size: 0.875rem; line-height: 1.7; color: #57503f; margin: 1.5rem 0 0; }
+  .toc { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.75rem 1rem; font-size: 1rem; color: #22201B;
+    background: #FAF5E8; border: 1px solid #D8CDB0; border-radius: 6px;
+    cursor: pointer; text-align: left;
+  }
+  .toc-check { color: #B23A2E; }
+  .kana-note { font-size: 0.8rem; line-height: 1.6; color: #57503f; margin: 1rem 0 0; }
+  .kana-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
+  .kana-tile {
+    width: 56px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; color: #22201B;
+    background: #FAF5E8; border: 1px solid #D8CDB0; border-radius: 6px;
+    cursor: pointer;
+  }
+  .kana-tile.active { border-color: #B23A2E; }
+  .kana-words-label { font-size: 0.8rem; color: #8a8374; margin: 2rem 0 0; }
+  .kana-words { margin-top: 0.75rem; font-size: 22px; line-height: 2.2; }
+  .kana-word { margin-right: 1.1rem; }
+  .page-nav { display: flex; justify-content: space-between; margin-top: 2.5rem; }
+  .nav-btn {
+    font-size: 0.875rem; color: #57503f;
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+
+  /* ---------- 문장 읽어주기 버튼 ---------- */
+  .tts-btn {
+    background: none; border: none; cursor: pointer;
+    color: #B8AE96; font-size: 12px; padding: 0 6px 0 0;
+    vertical-align: middle;
+  }
+  .tts-btn:hover { color: #B23A2E; }
+
+  /* ---------- 하단 뜻 풀이 스트립 ---------- */
+  .gloss-strip {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #22201B; color: #F1EAD9;
+    padding: 14px 20px; min-height: 52px;
+  }
+  .gloss-strip .wrap { padding: 0; }
+  .gloss-strip p { margin: 0; font-size: 0.875rem; }
+  .gloss-strip .placeholder { color: #8a8374; }
+  .gloss-word { font-size: 16px; }
+  .gloss-dim { color: #B8AE96; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ===========================================================================
+// 콘텐츠 층 — 창작 원본 지문 (레벨1: 히라가나만 / 레벨2: 기초 한자 + 후리가나)
+// 토큰: t = 표기, r = 후리가나, g = 한국어 뜻 (g 없는 토큰은 탭 불가)
+// ===========================================================================
+const BOOKS = [
+  {
+    id: "l1-cat",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "ねこの いちにち",
+    subtitle: "고양이의 하루",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "ねこ", g: "고양이" }, { t: "が" }, { t: "います", g: "있어요" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "は" }, { t: "しろい", g: "하얗다" }, { t: "です" }, { t: "。" }],
+      [{ t: "ねこ", g: "고양이" }, { t: "は" }, { t: "まいにち", g: "매일" }, { t: "ねます", g: "자요" }, { t: "。" }],
+      [{ t: "あさ", g: "아침" }, { t: "、" }, { t: "ねこ", g: "고양이" }, { t: "は" }, { t: "ごはん", g: "밥" }, { t: "を" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "よる", g: "밤" }, { t: "、" }, { t: "ねこ", g: "고양이" }, { t: "は" }, { t: "わたし", g: "나" }, { t: "と" }, { t: "あそびます", g: "놀아요" }, { t: "。" }],
+      [{ t: "わたし", g: "나" }, { t: "は" }, { t: "ねこ", g: "고양이" }, { t: "が" }, { t: "すき", g: "좋아함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l1-breakfast",
+    level: 1,
+    levelLabel: "레벨 1 · 히라가나 그림책",
+    title: "あさごはん",
+    subtitle: "아침밥",
+    color: "#6B7A5E",
+    sentences: [
+      [{ t: "わたし", g: "나" }, { t: "は" }, { t: "まいあさ", g: "매일 아침" }, { t: "パン", r: "ぱん", g: "빵" }, { t: "を" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "コーヒー", r: "こーひー", g: "커피" }, { t: "も" }, { t: "のみます", g: "마셔요" }, { t: "。" }],
+      [{ t: "とても", g: "아주" }, { t: "おいしい", g: "맛있다" }, { t: "です" }, { t: "。" }],
+      [{ t: "ときどき", g: "가끔" }, { t: "たまご", g: "계란" }, { t: "も" }, { t: "たべます", g: "먹어요" }, { t: "。" }],
+      [{ t: "あさごはん", g: "아침밥" }, { t: "は" }, { t: "たいせつ", g: "중요함" }, { t: "です" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-sunday",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "日曜日の朝",
+    subtitle: "일요일 아침",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "私", r: "わたし", g: "나" }, { t: "は" }, { t: "日曜日", r: "にちようび", g: "일요일" }, { t: "に" }, { t: "早く", r: "はやく", g: "일찍" }, { t: "起きます", r: "おきます", g: "일어나요" }, { t: "。" }],
+      [{ t: "公園", r: "こうえん", g: "공원" }, { t: "まで" }, { t: "散歩", r: "さんぽ", g: "산책" }, { t: "に" }, { t: "行きます", r: "いきます", g: "가요" }, { t: "。" }],
+      [{ t: "天気", r: "てんき", g: "날씨" }, { t: "が" }, { t: "とても", g: "아주" }, { t: "いい", g: "좋다" }, { t: "です" }, { t: "。" }],
+      [{ t: "帰って", r: "かえって", g: "돌아와서" }, { t: "から" }, { t: "、" }, { t: "朝ご飯", r: "あさごはん", g: "아침밥" }, { t: "を" }, { t: "作ります", r: "つくります", g: "만들어요" }, { t: "。" }],
+    ],
+  },
+  {
+    id: "l2-park",
+    level: 2,
+    levelLabel: "레벨 2 · 기초 한자 도입",
+    title: "友達と公園",
+    subtitle: "친구와 공원",
+    color: "#2B4570",
+    sentences: [
+      [{ t: "今日", r: "きょう", g: "오늘" }, { t: "、" }, { t: "友達", r: "ともだち", g: "친구" }, { t: "と" }, { t: "公園", r: "こうえん", g: "공원" }, { t: "で" }, { t: "会いました", r: "あいました", g: "만났어요" }, { t: "。" }],
+      [{ t: "一緒に", r: "いっしょに", g: "같이" }, { t: "お弁当", r: "おべんとう", g: "도시락" }, { t: "を" }, { t: "食べました", r: "たべました", g: "먹었어요" }, { t: "。" }],
+      [{ t: "とても", g: "아주" }, { t: "楽しかった", r: "たのしかった", g: "즐거웠다" }, { t: "です" }, { t: "。" }],
+      [{ t: "また" }, { t: "来週", r: "らいしゅう", g: "다음 주" }, { t: "会う", r: "あう", g: "만나다" }, { t: "約束", r: "やくそく", g: "약속" }, { t: "を" }, { t: "しました", g: "했어요" }, { t: "。" }],
+    ],
+  },
+];
+
+// ===========================================================================
+// 0단계 — 히라가나 글자책
+// 페이지마다: kana = [글자, 한국어 발음 힌트], words = 배운 글자만 쓰는 꼬마 단어
+// ===========================================================================
+const KANA_BOOK = {
+  id: "kana",
+  title: "ひらがな",
+  subtitle: "히라가나 글자책",
+  color: "#8B5E34",
+  pages: [
+    { id: "a", name: "あ행",
+      kana: [["あ", "아"], ["い", "이"], ["う", "우"], ["え", "에"], ["お", "오"]],
+      words: [["あい", "사랑"], ["いえ", "집"], ["うえ", "위"], ["あお", "파랑"]] },
+    { id: "ka", name: "か행",
+      kana: [["か", "카"], ["き", "키"], ["く", "쿠"], ["け", "케"], ["こ", "코"]],
+      words: [["かお", "얼굴"], ["あか", "빨강"], ["こえ", "목소리"], ["えき", "역"], ["いけ", "연못"]] },
+    { id: "sa", name: "さ행",
+      kana: [["さ", "사"], ["し", "시"], ["す", "스"], ["せ", "세"], ["そ", "소"]],
+      words: [["あさ", "아침"], ["すし", "초밥"], ["いす", "의자"], ["かさ", "우산"], ["しお", "소금"]] },
+    { id: "ta", name: "た행",
+      kana: [["た", "타"], ["ち", "치"], ["つ", "츠"], ["て", "테"], ["と", "토"]],
+      words: [["つき", "달"], ["たこ", "문어"], ["くつ", "신발"], ["した", "아래"], ["ちかてつ", "지하철"]] },
+    { id: "na", name: "な행",
+      kana: [["な", "나"], ["に", "니"], ["ぬ", "누"], ["ね", "네"], ["の", "노"]],
+      words: [["ねこ", "고양이"], ["いぬ", "개"], ["なつ", "여름"], ["さかな", "생선"], ["おかね", "돈"]] },
+    { id: "ha", name: "は행",
+      kana: [["は", "하"], ["ひ", "히"], ["ふ", "후"], ["へ", "헤"], ["ほ", "호"]],
+      words: [["はな", "꽃"], ["ひと", "사람"], ["ふね", "배"], ["ほし", "별"], ["ふく", "옷"]] },
+    { id: "ma", name: "ま행",
+      kana: [["ま", "마"], ["み", "미"], ["む", "무"], ["め", "메"], ["も", "모"]],
+      words: [["みみ", "귀"], ["うみ", "바다"], ["あめ", "비"], ["もも", "복숭아"], ["まいにち", "매일"]] },
+    { id: "ya", name: "や행",
+      kana: [["や", "야"], ["ゆ", "유"], ["よ", "요"]],
+      words: [["やま", "산"], ["ゆき", "눈(하늘에서 오는)"], ["ゆめ", "꿈"], ["へや", "방"], ["やさい", "야채"]] },
+    { id: "ra", name: "ら행",
+      kana: [["ら", "라"], ["り", "리"], ["る", "루"], ["れ", "레"], ["ろ", "로"]],
+      words: [["そら", "하늘"], ["さくら", "벚꽃"], ["くるま", "자동차"], ["とり", "새"], ["よる", "밤"]] },
+    { id: "wa", name: "わ행과 ん",
+      kana: [["わ", "와"], ["を", "오 — 단어에는 거의 안 쓰고 '~을/를' 자리에 써요"], ["ん", "응 — 받침 소리"]],
+      words: [["わたし", "나"], ["かわ", "강"], ["にわ", "정원"], ["ほん", "책"], ["みかん", "귤"]] },
+    { id: "daku1", name: "점 붙은 글자 ① が·ざ·だ",
+      note: "오른쪽 위에 점 두 개(゛)가 붙으면 소리가 탁해져요. か(카)→が(가). ぢ·づ는 거의 안 써요.",
+      kana: [["が", "가"], ["ぎ", "기"], ["ぐ", "구"], ["げ", "게"], ["ご", "고"],
+             ["ざ", "자"], ["じ", "지"], ["ず", "즈"], ["ぜ", "제"], ["ぞ", "조"],
+             ["だ", "다"], ["ぢ", "지 (거의 안 씀)"], ["づ", "즈 (거의 안 씀)"], ["で", "데"], ["ど", "도"]],
+      words: [["めがね", "안경"], ["かぜ", "바람"], ["みず", "물"], ["まど", "창문"], ["ともだち", "친구"]] },
+    { id: "daku2", name: "점 붙은 글자 ② ば·ぱ",
+      note: "점 두 개(゛)는 ㅂ 소리, 동그라미(゜)는 ㅍ 소리예요.",
+      kana: [["ば", "바"], ["び", "비"], ["ぶ", "부"], ["べ", "베"], ["ぼ", "보"],
+             ["ぱ", "파"], ["ぴ", "피"], ["ぷ", "푸"], ["ぺ", "페"], ["ぽ", "포"]],
+      words: [["かばん", "가방"], ["そば", "메밀국수"], ["えんぴつ", "연필"], ["さんぽ", "산책"], ["かんぱい", "건배"]] },
+    { id: "mix", name: "섞어 읽기 — 마지막 확인",
+      note: "천천히 더듬더듬 읽어도 충분해요. 소리 내서(또는 속으로) 읽어보고, 읽을 수 있으면 아래를 체크하세요.",
+      kana: [],
+      words: [["おはよう", "안녕하세요 (아침 인사)"], ["ありがとう", "고마워요"], ["ごはん", "밥"],
+              ["やすみ", "쉬는 날"], ["にほんご", "일본어"], ["ひらがな", "히라가나"],
+              ["ねこがいます", "고양이가 있어요"]] },
+  ],
+};
+
+// ===========================================================================
+// 기록 층 — localStorage 진도 저장 (CLAUDE.md 5장 구조)
+// ===========================================================================
+const STORAGE_KEY = "dokudo_progress_v1";
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      return {
+        finished: p.finished || {},
+        taps: p.taps || {},
+        wordTaps: p.wordTaps || {},
+        kana: p.kana || { pages: {}, done: false },
+        currentLevel: p.currentLevel || 1,
+        lastSaved: p.lastSaved || null,
+      };
+    }
+  } catch (e) { /* 손상된 기록이면 새로 시작 */ }
+  return { finished: {}, taps: {}, wordTaps: {}, kana: { pages: {}, done: false }, currentLevel: 1, lastSaved: null };
+}
+
+function saveProgress() {
+  progress.lastSaved = new Date().toISOString();
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  } catch (e) { /* 시크릿 모드 등 저장 불가 환경에서는 조용히 넘어감 */ }
+}
+
+function glossTokenCount(book) {
+  let n = 0;
+  for (const sentence of book.sentences) {
+    for (const tok of sentence) if (tok.g) n++;
+  }
+  return n;
+}
+
+// 단어 탭을 기록: 책별 위치(keys)는 중복 없이, 단어별 횟수(wordTaps)는 누적
+function recordTap(book, si, ti, tok) {
+  if (!progress.taps[book.id]) {
+    progress.taps[book.id] = { tapped: 0, glossTokens: glossTokenCount(book), keys: [] };
+  }
+  const rec = progress.taps[book.id];
+  const key = si + "-" + ti;
+  if (!rec.keys.includes(key)) {
+    rec.keys.push(key);
+    rec.tapped = rec.keys.length;
+  }
+  progress.wordTaps[tok.t] = (progress.wordTaps[tok.t] || 0) + 1;
+  saveProgress();
+}
+
+// ===========================================================================
+// 듣기 — 브라우저 내장 음성 (Web Speech API, ja-JP)
+// ===========================================================================
+function speak(text, rate) {
+  if (!("speechSynthesis" in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "ja-JP";
+  u.rate = rate || 0.9;
+  const voice = speechSynthesis.getVoices().find((v) => v.lang && v.lang.indexOf("ja") === 0);
+  if (voice) u.voice = voice;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+// ===========================================================================
+// 화면 층
+// ===========================================================================
+const app = document.getElementById("app");
+const progress = loadProgress();
+let currentBook = null;
+let activeTokEl = null;
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderShelf() {
+  currentBook = null;
+  activeTokEl = null;
+
+  const kanaSpine =
+    '<div class="spine-col">' +
+    (progress.kana.done ? '<span class="spine-check">✓</span>' : "") +
+    '<button class="spine mincho" lang="ja" data-id="kana" ' +
+    'style="background:' + KANA_BOOK.color + ';height:150px;">' +
+    esc(KANA_BOOK.title) + "</button></div>";
+
+  const spines = kanaSpine + BOOKS.map((book) => {
+    const check = progress.finished[book.id] ? '<span class="spine-check">✓</span>' : "";
+    const height = book.level === 1 ? 170 : 210;
+    return (
+      '<div class="spine-col">' + check +
+      '<button class="spine mincho" lang="ja" data-id="' + esc(book.id) + '" ' +
+      'style="background:' + esc(book.color) + ';height:' + height + 'px;">' +
+      esc(book.title) + "</button></div>"
+    );
+  }).join("");
+
+  app.innerHTML =
+    '<div class="wrap shelf-page">' +
+      '<p class="shelf-kicker mincho" lang="ja">多読</p>' +
+      '<h1 class="shelf-title mincho">다독 서가</h1>' +
+      '<p class="shelf-desc">문법 설명 없이, 이해되는 만큼만 읽어보세요. 책등 색이 레벨이에요.</p>' +
+      '<div class="legend">' +
+        '<span><i style="background:#8B5E34"></i>글자책 · 여기부터</span>' +
+        '<span><i style="background:#6B7A5E"></i>레벨1 · 히라가나만</span>' +
+        '<span><i style="background:#2B4570"></i>레벨2 · 기초 한자</span>' +
+      '</div>' +
+      '<div class="bookshelf">' +
+        '<div class="spines">' + spines + '</div>' +
+        '<div class="shelf-wood-top"></div>' +
+        '<div class="shelf-wood-bottom"></div>' +
+      '</div>' +
+      '<p class="shelf-hint">책등을 탭해서 꺼내 읽어보세요</p>' +
+      (progress.kana.done ? "" :
+        '<p class="shelf-hint" style="color:#8B5E34">일본어가 처음이라면 갈색 글자책 「ひらがな」부터 펼쳐보세요</p>') +
+      '<p class="shelf-note">읽은 기록은 이 기기의 브라우저에만 저장돼요</p>' +
+    '</div>';
+
+  app.querySelectorAll(".spine").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.id === "kana") renderKanaToc();
+      else renderReader(btn.dataset.id);
+    });
+  });
+}
+
+function tokenHtml(tok, si, ti) {
+  const inner = tok.r
+    ? "<ruby>" + esc(tok.t) + "<rt>" + esc(tok.r) + "</rt></ruby>"
+    : esc(tok.t);
+  if (!tok.g) return '<span class="tok">' + inner + "</span>";
+  return '<span class="tok tok-tap" data-si="' + si + '" data-ti="' + ti + '">' + inner + "</span>";
+}
+
+function renderReader(bookId) {
+  currentBook = BOOKS.find((b) => b.id === bookId);
+  activeTokEl = null;
+  if (!currentBook) { renderShelf(); return; }
+
+  const body = currentBook.sentences.map((sentence, si) =>
+    '<p><button class="tts-btn" data-si="' + si + '" title="읽어주기">&#9654;</button>' +
+    sentence.map((tok, ti) => tokenHtml(tok, si, ti)).join("") + "</p>"
+  ).join("");
+
+  const done = !!progress.finished[currentBook.id];
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 책장으로</button>' +
+      '<p class="reader-level" style="color:' + esc(currentBook.color) + '">' + esc(currentBook.levelLabel) + '</p>' +
+      '<h2 class="reader-title mincho" lang="ja">' + esc(currentBook.title) + '</h2>' +
+      '<p class="reader-subtitle">' + esc(currentBook.subtitle) + '</p>' +
+      '<div class="reader-text mincho" lang="ja">' + body + '</div>' +
+      '<button class="finish-btn' + (done ? " done" : "") + '" id="finishBtn">' +
+        (done ? "✓ 다 읽음" : "다 읽었어요") + '</button>' +
+    '</div>' +
+    '<div class="gloss-strip"><div class="wrap" id="glossContent">' +
+      '<p class="placeholder">단어를 탭하면 뜻이 보여요</p>' +
+    '</div></div>';
+
+  document.getElementById("backBtn").addEventListener("click", renderShelf);
+  document.getElementById("finishBtn").addEventListener("click", toggleFinished);
+  app.querySelectorAll(".tok-tap").forEach((el) => {
+    el.addEventListener("click", () => onTokenTap(el));
+  });
+  app.querySelectorAll(".tts-btn").forEach((el) => {
+    el.addEventListener("click", () => {
+      const sentence = currentBook.sentences[Number(el.dataset.si)];
+      speak(sentence.map((t) => t.t).join(""), 0.85);
+    });
+  });
+}
+
+function onTokenTap(el) {
+  const si = Number(el.dataset.si);
+  const ti = Number(el.dataset.ti);
+  const tok = currentBook.sentences[si][ti];
+
+  if (activeTokEl) activeTokEl.classList.remove("active");
+  el.classList.add("active");
+  activeTokEl = el;
+
+  const reading = tok.r ? ' <span class="gloss-dim">(' + esc(tok.r) + ")</span>" : "";
+  document.getElementById("glossContent").innerHTML =
+    '<p><span class="gloss-word mincho" lang="ja">' + esc(tok.t) + "</span>" + reading +
+    ' <span class="gloss-dim">—</span> ' + esc(tok.g) + "</p>";
+
+  recordTap(currentBook, si, ti, tok);
+}
+
+// ---------- 0단계: 히라가나 글자책 ----------
+function renderKanaToc() {
+  currentBook = null;
+  activeTokEl = null;
+
+  const items = KANA_BOOK.pages.map((page, i) => {
+    const seen = page.id === "mix" ? progress.kana.done : !!progress.kana.pages[page.id];
+    return (
+      '<button class="toc-item" data-i="' + i + '">' +
+        '<span class="mincho" lang="ja">' + esc(page.name) + "</span>" +
+        (seen ? '<span class="toc-check">✓</span>' : "") +
+      "</button>"
+    );
+  }).join("");
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 책장으로</button>' +
+      '<p class="reader-level" style="color:' + KANA_BOOK.color + '">0단계 · 글자 떼기</p>' +
+      '<h2 class="reader-title mincho" lang="ja">' + esc(KANA_BOOK.title) + '</h2>' +
+      '<p class="reader-subtitle">' + esc(KANA_BOOK.subtitle) + '</p>' +
+      '<p class="kana-desc">글자를 탭하면 소리가 나요. 시험도 점수도 없어요 — 하루 한두 줄씩, 편하게 만나면 됩니다. 한 줄이 끝나면 배운 글자로만 만든 단어를 바로 읽어봐요.</p>' +
+      '<div class="toc">' + items + '</div>' +
+    '</div>';
+
+  document.getElementById("backBtn").addEventListener("click", renderShelf);
+  app.querySelectorAll(".toc-item").forEach((btn) => {
+    btn.addEventListener("click", () => renderKanaPage(Number(btn.dataset.i)));
+  });
+}
+
+function renderKanaPage(pi) {
+  const page = KANA_BOOK.pages[pi];
+  activeTokEl = null;
+  const isMix = page.id === "mix";
+
+  const tiles = page.kana.map((pair, i) =>
+    '<button class="kana-tile mincho" lang="ja" data-i="' + i + '">' + esc(pair[0]) + "</button>"
+  ).join("");
+
+  const words = page.words.map((pair, i) =>
+    '<span class="tok tok-tap kana-word mincho" lang="ja" data-i="' + i + '">' + esc(pair[0]) + "</span>"
+  ).join("");
+
+  const seen = isMix ? progress.kana.done : !!progress.kana.pages[page.id];
+  const checkLabel = isMix
+    ? (seen ? "✓ 이제 읽을 수 있어요" : "이제 읽을 수 있어요")
+    : (seen ? "✓ 다 봤어요" : "이 줄 다 봤어요");
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 목차로</button>' +
+      '<p class="reader-level" style="color:' + KANA_BOOK.color + '">0단계 · ' + esc(KANA_BOOK.subtitle) + '</p>' +
+      '<h2 class="reader-title mincho" lang="ja">' + esc(page.name) + '</h2>' +
+      (page.note ? '<p class="kana-note">' + esc(page.note) + '</p>' : "") +
+      (tiles ? '<div class="kana-grid">' + tiles + '</div>' : "") +
+      (words ? '<p class="kana-words-label">읽어보기 — 배운 글자로만 만든 단어예요</p>' +
+        '<div class="kana-words" lang="ja">' + words + '</div>' : "") +
+      '<div>' +
+        '<button class="finish-btn' + (seen ? " done" : "") + '" id="kanaCheckBtn">' + checkLabel + '</button>' +
+      '</div>' +
+      (isMix && seen ? '<p class="kana-note">준비 끝! 책장으로 돌아가서 초록색 그림책부터 읽으면 돼요.</p>' : "") +
+      '<div class="page-nav">' +
+        (pi > 0
+          ? '<button class="nav-btn" id="prevBtn" lang="ja">&larr; ' + esc(KANA_BOOK.pages[pi - 1].name) + '</button>'
+          : "<span></span>") +
+        (pi < KANA_BOOK.pages.length - 1
+          ? '<button class="nav-btn" id="nextBtn" lang="ja">' + esc(KANA_BOOK.pages[pi + 1].name) + ' &rarr;</button>'
+          : "<span></span>") +
+      '</div>' +
+    '</div>' +
+    '<div class="gloss-strip"><div class="wrap" id="glossContent">' +
+      '<p class="placeholder">글자나 단어를 탭하면 소리가 나고 뜻이 보여요</p>' +
+    '</div></div>';
+
+  document.getElementById("backBtn").addEventListener("click", renderKanaToc);
+
+  function showInStrip(jp, hint) {
+    document.getElementById("glossContent").innerHTML =
+      '<p><span class="gloss-word mincho" lang="ja">' + esc(jp) + '</span> <span class="gloss-dim">—</span> ' + esc(hint) + "</p>";
+  }
+  function activate(el) {
+    if (activeTokEl) activeTokEl.classList.remove("active");
+    el.classList.add("active");
+    activeTokEl = el;
+  }
+
+  app.querySelectorAll(".kana-tile").forEach((el) => {
+    el.addEventListener("click", () => {
+      const pair = page.kana[Number(el.dataset.i)];
+      activate(el);
+      showInStrip(pair[0], pair[1]);
+      speak(pair[0], 0.8);
+    });
+  });
+  app.querySelectorAll(".kana-word").forEach((el) => {
+    el.addEventListener("click", () => {
+      const pair = page.words[Number(el.dataset.i)];
+      activate(el);
+      showInStrip(pair[0], pair[1]);
+      speak(pair[0], 0.85);
+    });
+  });
+  document.getElementById("kanaCheckBtn").addEventListener("click", () => {
+    if (isMix) progress.kana.done = !progress.kana.done;
+    else progress.kana.pages[page.id] = !progress.kana.pages[page.id];
+    saveProgress();
+    renderKanaPage(pi);
+  });
+  const prevBtn = document.getElementById("prevBtn");
+  if (prevBtn) prevBtn.addEventListener("click", () => renderKanaPage(pi - 1));
+  const nextBtn = document.getElementById("nextBtn");
+  if (nextBtn) nextBtn.addEventListener("click", () => renderKanaPage(pi + 1));
+}
+
+function toggleFinished() {
+  progress.finished[currentBook.id] = !progress.finished[currentBook.id];
+  saveProgress();
+  const done = !!progress.finished[currentBook.id];
+  const btn = document.getElementById("finishBtn");
+  btn.classList.toggle("done", done);
+  btn.textContent = done ? "✓ 다 읽음" : "다 읽었어요";
+}
+
+renderShelf();
+</script>
+</body>
+</html>
