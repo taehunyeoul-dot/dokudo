@@ -138,6 +138,22 @@
   .book-art { margin-top: 1.5rem; }
   .book-art svg { display: block; width: 100%; height: auto; border: 1px solid #D8CDB0; border-radius: 10px; }
 
+  /* ---------- 진도 옮기기 ---------- */
+  .sync-section { margin-top: 2rem; }
+  .sync-title { font-size: 0.875rem; font-weight: 700; margin: 0 0 0.25rem; }
+  .sync-btn {
+    display: inline-block; margin: 0.5rem 0.5rem 0 0; padding: 0.5rem 1rem;
+    font-size: 0.875rem; border-radius: 4px; cursor: pointer;
+    background: transparent; color: #57503f; border: 1px solid #B8AE96;
+  }
+  .sync-textarea {
+    width: 100%; min-height: 90px; margin-top: 0.75rem; padding: 0.5rem;
+    font-size: 0.75rem; color: #57503f; box-sizing: border-box;
+    background: #FAF5E8; border: 1px solid #D8CDB0; border-radius: 6px;
+  }
+  .sync-msg { font-size: 0.8rem; color: #B23A2E; margin: 0.5rem 0 0; min-height: 1em; }
+  .sync-file-input { display: none; }
+
   /* ---------- 문장 읽어주기 버튼 ---------- */
   .tts-btn {
     background: none; border: none; cursor: pointer;
@@ -164,7 +180,7 @@
 
 <script>
 // 앱 버전 — 배포할 때마다 숫자를 1 올린다 (홈 화면 앱의 업데이트 감지에 사용)
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 
 // ===========================================================================
 // 콘텐츠 층 — 창작 원본 지문 (레벨1: 히라가나만 / 레벨2: 기초 한자 + 후리가나)
@@ -721,6 +737,7 @@ function renderShelf() {
       shelfSection("레벨 1 · 히라가나 그림책", level1) +
       shelfSection("레벨 2 · 기초 한자 + 후리가나", level2) +
       '<p class="shelf-note">읽은 기록은 이 기기의 브라우저에만 저장돼요</p>' +
+      '<button class="reload-btn" id="syncBtn">진도 옮기기 (컴퓨터 ↔ 폰)</button>' +
       '<button class="reload-btn" id="reloadBtn">새로고침 · v' + APP_VERSION + '</button>' +
     '</div>';
 
@@ -733,6 +750,117 @@ function renderShelf() {
   const updateBtn = document.getElementById("updateBtn");
   if (updateBtn) updateBtn.addEventListener("click", reloadApp);
   document.getElementById("reloadBtn").addEventListener("click", reloadApp);
+  document.getElementById("syncBtn").addEventListener("click", goSync);
+}
+
+// ---------- 진도 옮기기 (내보내기/불러오기) ----------
+function exportProgressText() {
+  return JSON.stringify(progress);
+}
+
+function exportProgressFile() {
+  const blob = new Blob([exportProgressText()], { type: "application/json" });
+  const a = document.createElement("a");
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = "dokudo-progress-" + d.getFullYear() +
+    ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// 불러온 진도는 기존 진도와 합친다 — 실수로 옛 파일을 불러와도 지금 진도가 사라지지 않게
+function mergeProgress(incoming) {
+  if (!incoming || typeof incoming !== "object") return false;
+  if (!incoming.finished && !incoming.taps && !incoming.wordTaps && !incoming.kana) return false;
+
+  const finished = incoming.finished || {};
+  Object.keys(finished).forEach((id) => { if (finished[id]) progress.finished[id] = true; });
+
+  const taps = incoming.taps || {};
+  Object.keys(taps).forEach((bid) => {
+    const t = taps[bid] || {};
+    if (!progress.taps[bid]) progress.taps[bid] = { tapped: 0, glossTokens: t.glossTokens || 0, keys: [] };
+    const rec = progress.taps[bid];
+    (t.keys || []).forEach((k) => { if (!rec.keys.includes(k)) rec.keys.push(k); });
+    rec.tapped = rec.keys.length;
+    if (t.glossTokens) rec.glossTokens = t.glossTokens;
+  });
+
+  const wordTaps = incoming.wordTaps || {};
+  Object.keys(wordTaps).forEach((w) => {
+    progress.wordTaps[w] = Math.max(progress.wordTaps[w] || 0, wordTaps[w] || 0);
+  });
+
+  const kana = incoming.kana || {};
+  Object.keys(kana.pages || {}).forEach((p) => { if (kana.pages[p]) progress.kana.pages[p] = true; });
+  if (kana.done) progress.kana.done = true;
+
+  progress.currentLevel = Math.max(progress.currentLevel || 1, incoming.currentLevel || 1);
+  saveProgress();
+  return true;
+}
+
+function importProgressText(text) {
+  try { return mergeProgress(JSON.parse(text)); } catch (e) { return false; }
+}
+
+function showImportResult(ok) {
+  document.getElementById("importMsg").textContent = ok
+    ? "불러왔어요! 진도가 합쳐졌습니다. 책장으로 돌아가서 확인해보세요."
+    : "불러오지 못했어요. 진도 파일(코드)이 맞는지 확인해주세요.";
+}
+
+function renderSync() {
+  currentBook = null;
+  activeTokEl = null;
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 책장으로</button>' +
+      '<h2 class="reader-title mincho" style="margin-top:1.5rem">진도 옮기기</h2>' +
+      '<p class="kana-desc">읽은 기록은 서버가 아니라 <b>이 기기의 브라우저</b>에만 저장돼요. 다른 기기로 옮기려면: ① 여기서 내보내고 ② 카톡·메일로 <b>나에게 보내기</b> 한 뒤 ③ 그 기기에서 불러오면 됩니다. 불러온 진도는 기존 진도와 <b>합쳐져요</b> (지워지지 않아요).</p>' +
+      '<div class="sync-section">' +
+        '<p class="sync-title">① 내보내기 — 지금 이 기기의 진도</p>' +
+        '<button class="sync-btn" id="exportFileBtn">파일로 저장</button>' +
+        '<button class="sync-btn" id="copyCodeBtn">코드 복사</button>' +
+        '<textarea class="sync-textarea" id="exportText" readonly style="display:none"></textarea>' +
+        '<p class="sync-msg" id="exportMsg"></p>' +
+      '</div>' +
+      '<div class="sync-section">' +
+        '<p class="sync-title">② 불러오기 — 다른 기기에서 가져온 진도</p>' +
+        '<label class="sync-btn">파일 선택<input type="file" id="importFile" class="sync-file-input" accept=".json,application/json,text/plain"></label>' +
+        '<textarea class="sync-textarea" id="importText" placeholder="또는, 복사한 코드를 여기에 붙여넣고 아래 버튼을 누르세요"></textarea>' +
+        '<button class="sync-btn" id="importBtn">붙여넣은 코드 불러오기</button>' +
+        '<p class="sync-msg" id="importMsg"></p>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
+  document.getElementById("exportFileBtn").addEventListener("click", exportProgressFile);
+  document.getElementById("copyCodeBtn").addEventListener("click", () => {
+    const code = exportProgressText();
+    const ta = document.getElementById("exportText");
+    const msg = document.getElementById("exportMsg");
+    ta.style.display = "block";
+    ta.value = code;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(
+        () => { msg.textContent = "복사됐어요! 카톡 '나에게 보내기'에 붙여넣으세요."; },
+        () => { ta.select(); msg.textContent = "복사가 막혔어요 — 아래 코드를 길게 눌러 직접 복사하세요."; }
+      );
+    } else {
+      ta.select();
+      msg.textContent = "아래 코드를 길게 눌러 직접 복사하세요.";
+    }
+  });
+  document.getElementById("importFile").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) f.text().then((t) => showImportResult(importProgressText(t)));
+  });
+  document.getElementById("importBtn").addEventListener("click", () => {
+    showImportResult(importProgressText(document.getElementById("importText").value));
+  });
 }
 
 function tokenHtml(tok, si, ti) {
@@ -934,6 +1062,7 @@ document.addEventListener("gesturestart", (e) => e.preventDefault());
 function goReader(id) { history.pushState({ v: "reader", id: id }, ""); renderReader(id); }
 function goKanaToc() { history.pushState({ v: "kanaToc" }, ""); renderKanaToc(); }
 function goKanaPage(i) { history.pushState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
+function goSync() { history.pushState({ v: "sync" }, ""); renderSync(); }
 // 글자책 안에서 이전/다음 줄 이동은 기록을 쌓지 않고 바꿔치기 — 뒤로가기는 항상 목차로
 function navKanaPage(i) { history.replaceState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
 
@@ -942,6 +1071,7 @@ window.addEventListener("popstate", (e) => {
   if (s.v === "reader") renderReader(s.id);
   else if (s.v === "kanaToc") renderKanaToc();
   else if (s.v === "kanaPage") renderKanaPage(s.i);
+  else if (s.v === "sync") renderSync();
   else renderShelf();
 });
 
