@@ -164,7 +164,7 @@
 
 <script>
 // 앱 버전 — 배포할 때마다 숫자를 1 올린다 (홈 화면 앱의 업데이트 감지에 사용)
-const APP_VERSION = "8";
+const APP_VERSION = "9";
 
 // ===========================================================================
 // 콘텐츠 층 — 창작 원본 지문 (레벨1: 히라가나만 / 레벨2: 기초 한자 + 후리가나)
@@ -726,8 +726,8 @@ function renderShelf() {
 
   app.querySelectorAll(".spine").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (btn.dataset.id === "kana") renderKanaToc();
-      else renderReader(btn.dataset.id);
+      if (btn.dataset.id === "kana") goKanaToc();
+      else goReader(btn.dataset.id);
     });
   });
   const updateBtn = document.getElementById("updateBtn");
@@ -770,7 +770,7 @@ function renderReader(bookId) {
       '<p class="placeholder">단어를 탭하면 뜻이 보여요</p>' +
     '</div></div>';
 
-  document.getElementById("backBtn").addEventListener("click", renderShelf);
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
   document.getElementById("finishBtn").addEventListener("click", toggleFinished);
   app.querySelectorAll(".tok-tap").forEach((el) => {
     el.addEventListener("click", () => onTokenTap(el));
@@ -825,9 +825,9 @@ function renderKanaToc() {
       '<div class="toc">' + items + '</div>' +
     '</div>';
 
-  document.getElementById("backBtn").addEventListener("click", renderShelf);
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
   app.querySelectorAll(".toc-item").forEach((btn) => {
-    btn.addEventListener("click", () => renderKanaPage(Number(btn.dataset.i)));
+    btn.addEventListener("click", () => goKanaPage(Number(btn.dataset.i)));
   });
 }
 
@@ -875,7 +875,7 @@ function renderKanaPage(pi) {
       '<p class="placeholder">글자나 단어를 탭하면 소리가 나고 뜻이 보여요</p>' +
     '</div></div>';
 
-  document.getElementById("backBtn").addEventListener("click", renderKanaToc);
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
 
   function showInStrip(jp, hint) {
     document.getElementById("glossContent").innerHTML =
@@ -910,9 +910,9 @@ function renderKanaPage(pi) {
     renderKanaPage(pi);
   });
   const prevBtn = document.getElementById("prevBtn");
-  if (prevBtn) prevBtn.addEventListener("click", () => renderKanaPage(pi - 1));
+  if (prevBtn) prevBtn.addEventListener("click", () => navKanaPage(pi - 1));
   const nextBtn = document.getElementById("nextBtn");
-  if (nextBtn) nextBtn.addEventListener("click", () => renderKanaPage(pi + 1));
+  if (nextBtn) nextBtn.addEventListener("click", () => navKanaPage(pi + 1));
 }
 
 function toggleFinished() {
@@ -926,6 +926,24 @@ function toggleFinished() {
 
 // 아이폰 사파리에서 핀치(두 손가락) 확대도 막는다 — 앱처럼 화면 고정
 document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+// ===========================================================================
+// 화면 이동 기록 (History API)
+// 아이폰 왼쪽 가장자리 스와이프·안드로이드 뒤로가기 제스처로 이전 화면 이동
+// ===========================================================================
+function goReader(id) { history.pushState({ v: "reader", id: id }, ""); renderReader(id); }
+function goKanaToc() { history.pushState({ v: "kanaToc" }, ""); renderKanaToc(); }
+function goKanaPage(i) { history.pushState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
+// 글자책 안에서 이전/다음 줄 이동은 기록을 쌓지 않고 바꿔치기 — 뒤로가기는 항상 목차로
+function navKanaPage(i) { history.replaceState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
+
+window.addEventListener("popstate", (e) => {
+  const s = e.state || { v: "shelf" };
+  if (s.v === "reader") renderReader(s.id);
+  else if (s.v === "kanaToc") renderKanaToc();
+  else if (s.v === "kanaPage") renderKanaPage(s.i);
+  else renderShelf();
+});
 
 // ===========================================================================
 // 업데이트 — 홈 화면 앱에는 브라우저 새로고침 버튼이 없으므로 앱이 직접 처리
@@ -956,6 +974,8 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) checkForUpdate();
 });
 
+// 시작 화면(책장)을 기록의 출발점으로 등록 (새로고침용 ?v= 꼬리표는 주소에서 정리)
+history.replaceState({ v: "shelf" }, "", location.pathname);
 renderShelf();
 </script>
 </body>
