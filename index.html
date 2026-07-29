@@ -26,7 +26,7 @@
   .mincho { font-family: 'Zen Old Mincho', serif; }
   .wrap { max-width: 28rem; margin: 0 auto; padding: 0 1.5rem; }
   button { font-family: inherit; }
-  button, .tok-tap, .kana-tile, .kana-word {
+  button, .tok-tap, .kana-tile, .kana-word, .quiz-letter {
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
@@ -138,6 +138,27 @@
   .book-art { margin-top: 1.5rem; }
   .book-art svg { display: block; width: 100%; height: auto; border: 1px solid #D8CDB0; border-radius: 10px; }
 
+  /* ---------- 글자 찾기 놀이 ---------- */
+  .quiz-letter {
+    margin-top: 2rem; padding: 1.5rem 0;
+    text-align: center; font-size: 88px; line-height: 1.1; color: #22201B;
+    background: #FAF5E8; border: 1px solid #D8CDB0; border-radius: 10px;
+    cursor: pointer;
+  }
+  .quiz-msg { font-size: 0.85rem; color: #8a8374; text-align: center; margin: 1rem 0 0; min-height: 1.2em; }
+  .quiz-msg.right { color: #6B7A5E; }
+  .quiz-msg.wrong { color: #B23A2E; }
+  .quiz-grid {
+    margin-top: 1rem;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
+  }
+  .quiz-opt {
+    padding: 0.7rem 0; font-size: 0.95rem; color: #22201B;
+    background: #FAF5E8; border: 1px solid #D8CDB0; border-radius: 6px; cursor: pointer;
+  }
+  .quiz-opt.right { background: #6B7A5E; border-color: #6B7A5E; color: #F1EAD9; }
+  .quiz-opt.wrong { background: #B23A2E; border-color: #B23A2E; color: #F1EAD9; }
+
   /* ---------- 진도 옮기기 ---------- */
   .sync-section { margin-top: 2rem; }
   .sync-title { font-size: 0.875rem; font-weight: 700; margin: 0 0 0.25rem; }
@@ -180,7 +201,7 @@
 
 <script>
 // 앱 버전 — 배포할 때마다 숫자를 1 올린다 (홈 화면 앱의 업데이트 감지에 사용)
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 
 // ===========================================================================
 // 콘텐츠 층 — 창작 원본 지문 (레벨1: 히라가나만 / 레벨2: 기초 한자 + 후리가나)
@@ -615,6 +636,99 @@ const KANA_BOOK = {
 };
 
 // ===========================================================================
+// 0단계 보조 — 글자 찾기 놀이
+// 글자가 하나 뜨고 발음 20개 중에서 고른다. 틀린 글자는 자주, 익숙한 글자는 드물게.
+// 점수·시간·연속정답 표시는 두지 않는다 (압박 금지 원칙).
+// ===========================================================================
+const QUIZ_BOOK = { id: "kanaquiz", title: "もじあそび", subtitle: "글자 찾기 놀이", color: "#A47148" };
+
+// 거의 안 쓰거나(ぢ·づ) 조사로만 쓰는(を) 글자는 놀이에서 뺀다
+const QUIZ_SKIP = ["ぢ", "づ", "を"];
+// 레벨 0~5 — 낮을수록 자주 나온다. 다 맞춘 글자도 0이 되지 않아 가끔 다시 나온다
+const QUIZ_WEIGHTS = [8, 5, 3, 2, 1, 1];
+
+// 글자책의 발음 힌트에서 짧은 발음만 뽑는다 ("응 — 받침 소리" → "응")
+function shortReading(hint) {
+  return hint.split("—")[0].split("(")[0].trim();
+}
+
+function allQuizLetters() {
+  const out = [];
+  KANA_BOOK.pages.forEach((p) => {
+    p.kana.forEach((pair) => {
+      if (QUIZ_SKIP.indexOf(pair[0]) === -1) out.push({ k: pair[0], r: shortReading(pair[1]), page: p.id });
+    });
+  });
+  return out;
+}
+
+// 글자책에서 '다 봤어요' 체크한 줄이 있으면 그 글자들만, 없으면 기본 46자
+function quizPool() {
+  const all = allQuizLetters();
+  const seen = Object.keys(progress.kana.pages).filter((id) => progress.kana.pages[id]);
+  if (seen.length) {
+    const inSeen = all.filter((x) => seen.indexOf(x.page) !== -1);
+    if (inSeen.length >= 2) return inSeen;
+  }
+  return all.filter((x) => x.page !== "daku1" && x.page !== "daku2");
+}
+
+function quizWeight(k) {
+  const s = progress.kanaQuiz.stats[k];
+  if (!s) return 10;                                   // 아직 안 만난 글자를 먼저
+  return QUIZ_WEIGHTS[Math.max(0, Math.min(5, s.lv || 0))];
+}
+
+function pickQuizLetter(pool, avoid) {
+  const cand = (pool.length > 1 && avoid) ? pool.filter((x) => x.k !== avoid) : pool;
+  let total = 0;
+  cand.forEach((x) => { total += quizWeight(x.k); });
+  let r = Math.random() * total;
+  for (let i = 0; i < cand.length; i++) {
+    r -= quizWeight(cand[i].k);
+    if (r <= 0) return cand[i];
+  }
+  return cand[cand.length - 1];
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+// 보기 20개 — 정답 1개 + 다른 글자의 발음 19개 (같은 발음은 한 번만)
+function quizOptions(answer) {
+  const others = [];
+  allQuizLetters().forEach((x) => {
+    if (x.r !== answer.r && others.indexOf(x.r) === -1) others.push(x.r);
+  });
+  shuffle(others);
+  return shuffle([answer.r].concat(others.slice(0, 19)));
+}
+
+// 맞히면 레벨이 올라 덜 나오고, 틀리면 0으로 돌아가 자주 나온다
+function recordQuiz(k, ok) {
+  const st = progress.kanaQuiz.stats;
+  if (!st[k]) st[k] = { ok: 0, no: 0, lv: 0 };
+  const s = st[k];
+  if (ok) { s.ok++; s.lv = Math.min(5, (s.lv || 0) + 1); }
+  else { s.no++; s.lv = 0; }
+  saveProgress();
+}
+
+// 아직 헷갈리는 글자 (자주 나오게 될 글자) — 점수가 아니라 '복습할 것' 안내용
+function shakyLetters(max) {
+  const st = progress.kanaQuiz.stats;
+  return Object.keys(st)
+    .filter((k) => (st[k].no || 0) > 0 && (st[k].lv || 0) <= 1)
+    .sort((a, b) => (st[b].no || 0) - (st[a].no || 0))
+    .slice(0, max || 8);
+}
+
+// ===========================================================================
 // 기록 층 — localStorage 진도 저장 (CLAUDE.md 5장 구조)
 // ===========================================================================
 const STORAGE_KEY = "dokudo_progress_v1";
@@ -629,12 +743,14 @@ function loadProgress() {
         taps: p.taps || {},
         wordTaps: p.wordTaps || {},
         kana: p.kana || { pages: {}, done: false },
+        kanaQuiz: (p.kanaQuiz && p.kanaQuiz.stats) ? p.kanaQuiz : { stats: {} },
         currentLevel: p.currentLevel || 1,
         lastSaved: p.lastSaved || null,
       };
     }
   } catch (e) { /* 손상된 기록이면 새로 시작 */ }
-  return { finished: {}, taps: {}, wordTaps: {}, kana: { pages: {}, done: false }, currentLevel: 1, lastSaved: null };
+  return { finished: {}, taps: {}, wordTaps: {}, kana: { pages: {}, done: false },
+           kanaQuiz: { stats: {} }, currentLevel: 1, lastSaved: null };
 }
 
 function saveProgress() {
@@ -696,6 +812,7 @@ function esc(s) {
 function renderShelf() {
   currentBook = null;
   activeTokEl = null;
+  if (quizTimer) { clearTimeout(quizTimer); quizTimer = null; }
 
   function spineCol(id, title, color, height, checked) {
     return (
@@ -733,7 +850,8 @@ function renderShelf() {
       (updateAvailable ?
         '<button class="update-banner" id="updateBtn">새 버전이 나왔어요 — 탭해서 업데이트</button>' : "") +
       shelfSection('0단계 · 글자 떼기',
-        spineCol("kana", KANA_BOOK.title, KANA_BOOK.color, 150, progress.kana.done)) +
+        spineCol("kana", KANA_BOOK.title, KANA_BOOK.color, 150, progress.kana.done) +
+        spineCol(QUIZ_BOOK.id, QUIZ_BOOK.title, QUIZ_BOOK.color, 130, false)) +
       shelfSection("레벨 1 · 히라가나 그림책", level1) +
       shelfSection("레벨 2 · 기초 한자 + 후리가나", level2) +
       '<p class="shelf-note">읽은 기록은 이 기기의 브라우저에만 저장돼요</p>' +
@@ -744,6 +862,7 @@ function renderShelf() {
   app.querySelectorAll(".spine").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn.dataset.id === "kana") goKanaToc();
+      else if (btn.dataset.id === QUIZ_BOOK.id) goQuizIntro();
       else goReader(btn.dataset.id);
     });
   });
@@ -772,7 +891,7 @@ function exportProgressFile() {
 // 불러온 진도는 기존 진도와 합친다 — 실수로 옛 파일을 불러와도 지금 진도가 사라지지 않게
 function mergeProgress(incoming) {
   if (!incoming || typeof incoming !== "object") return false;
-  if (!incoming.finished && !incoming.taps && !incoming.wordTaps && !incoming.kana) return false;
+  if (!incoming.finished && !incoming.taps && !incoming.wordTaps && !incoming.kana && !incoming.kanaQuiz) return false;
 
   const finished = incoming.finished || {};
   Object.keys(finished).forEach((id) => { if (finished[id]) progress.finished[id] = true; });
@@ -795,6 +914,17 @@ function mergeProgress(incoming) {
   const kana = incoming.kana || {};
   Object.keys(kana.pages || {}).forEach((p) => { if (kana.pages[p]) progress.kana.pages[p] = true; });
   if (kana.done) progress.kana.done = true;
+
+  // 글자 찾기 기록은 글자마다 '더 많이 해 본 쪽'을 남긴다
+  const qs = (incoming.kanaQuiz && incoming.kanaQuiz.stats) || {};
+  Object.keys(qs).forEach((k) => {
+    const inc = qs[k] || {};
+    const cur = progress.kanaQuiz.stats[k];
+    const incTries = (inc.ok || 0) + (inc.no || 0);
+    if (!cur || incTries > (cur.ok || 0) + (cur.no || 0)) {
+      progress.kanaQuiz.stats[k] = { ok: inc.ok || 0, no: inc.no || 0, lv: inc.lv || 0 };
+    }
+  });
 
   progress.currentLevel = Math.max(progress.currentLevel || 1, incoming.currentLevel || 1);
   saveProgress();
@@ -1043,6 +1173,101 @@ function renderKanaPage(pi) {
   if (nextBtn) nextBtn.addEventListener("click", () => navKanaPage(pi + 1));
 }
 
+// ---------- 0단계 보조: 글자 찾기 놀이 ----------
+let quizCurrent = null;
+let quizPrevLetter = null;
+let quizLocked = false;
+let quizTimer = null;
+
+function renderQuizIntro() {
+  currentBook = null;
+  activeTokEl = null;
+  if (quizTimer) { clearTimeout(quizTimer); quizTimer = null; }
+
+  const shaky = shakyLetters(8);
+  const pool = quizPool();
+  const usingSeen = Object.keys(progress.kana.pages).some((id) => progress.kana.pages[id]);
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 책장으로</button>' +
+      '<p class="reader-level" style="color:' + QUIZ_BOOK.color + '">0단계 · 글자 떼기 도우미</p>' +
+      '<h2 class="reader-title mincho" lang="ja">' + esc(QUIZ_BOOK.title) + '</h2>' +
+      '<p class="reader-subtitle">' + esc(QUIZ_BOOK.subtitle) + '</p>' +
+      '<p class="kana-desc">글자가 하나 뜨면 발음을 골라보세요. 점수도 시간 제한도 없어요. ' +
+        '틀린 글자는 자주, 익숙해진 글자는 가끔 나옵니다. 언제든 그만둬도 괜찮아요.</p>' +
+      '<p class="kana-note">지금 나오는 글자: ' + pool.length + '자' +
+        (usingSeen ? " (글자책에서 '다 봤어요' 체크한 줄)" : " (기본 46자 — 글자책에서 줄을 체크하면 그 줄만 나와요)") + '</p>' +
+      (shaky.length
+        ? '<p class="kana-words-label">아직 헷갈리는 글자 — 자주 나올 거예요</p>' +
+          '<div class="kana-words" lang="ja">' +
+            shaky.map((k) => '<span class="kana-word mincho">' + esc(k) + "</span>").join("") +
+          "</div>"
+        : "") +
+      '<div><button class="finish-btn" id="quizStartBtn">시작하기</button></div>' +
+    '</div>';
+
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
+  document.getElementById("quizStartBtn").addEventListener("click", goQuizPlay);
+}
+
+function renderQuizPlay() {
+  currentBook = null;
+  activeTokEl = null;
+  if (quizTimer) { clearTimeout(quizTimer); quizTimer = null; }
+  quizLocked = false;
+
+  const pool = quizPool();
+  quizCurrent = pickQuizLetter(pool, quizPrevLetter);
+  const opts = quizOptions(quizCurrent);
+
+  app.innerHTML =
+    '<div class="wrap reader-page">' +
+      '<button class="back-btn" id="backBtn">&larr; 그만하기</button>' +
+      '<div class="quiz-letter mincho" lang="ja" id="quizLetter">' + esc(quizCurrent.k) + '</div>' +
+      '<p class="quiz-msg" id="quizMsg">이 글자의 소리를 떠올려 보고 골라보세요</p>' +
+      '<div class="quiz-grid" id="quizGrid">' +
+        opts.map((r) => '<button class="quiz-opt" data-r="' + esc(r) + '">' + esc(r) + "</button>").join("") +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("backBtn").addEventListener("click", () => history.back());
+  app.querySelectorAll(".quiz-opt").forEach((btn) => {
+    btn.addEventListener("click", () => onQuizAnswer(btn));
+  });
+  // 답한 뒤에는 글자를 눌러 소리를 다시 들을 수 있다
+  document.getElementById("quizLetter").addEventListener("click", () => {
+    if (quizLocked) speak(quizCurrent.k, 0.8);
+  });
+}
+
+function onQuizAnswer(btn) {
+  if (quizLocked) return;
+  quizLocked = true;
+
+  const picked = btn.dataset.r;
+  const correct = picked === quizCurrent.r;
+  recordQuiz(quizCurrent.k, correct);
+  speak(quizCurrent.k, 0.8);
+
+  const msg = document.getElementById("quizMsg");
+  if (correct) {
+    btn.classList.add("right");
+    msg.textContent = "맞아요 — 「" + quizCurrent.k + "」는 '" + quizCurrent.r + "'";
+    msg.className = "quiz-msg right";
+  } else {
+    btn.classList.add("wrong");
+    app.querySelectorAll(".quiz-opt").forEach((b) => {
+      if (b.dataset.r === quizCurrent.r) b.classList.add("right");
+    });
+    msg.textContent = "「" + quizCurrent.k + "」는 '" + quizCurrent.r + "' — 다시 만나게 될 거예요";
+    msg.className = "quiz-msg wrong";
+  }
+
+  quizPrevLetter = quizCurrent.k;
+  quizTimer = setTimeout(renderQuizPlay, correct ? 900 : 1900);
+}
+
 function toggleFinished() {
   progress.finished[currentBook.id] = !progress.finished[currentBook.id];
   saveProgress();
@@ -1063,15 +1288,21 @@ function goReader(id) { history.pushState({ v: "reader", id: id }, ""); renderRe
 function goKanaToc() { history.pushState({ v: "kanaToc" }, ""); renderKanaToc(); }
 function goKanaPage(i) { history.pushState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
 function goSync() { history.pushState({ v: "sync" }, ""); renderSync(); }
+function goQuizIntro() { history.pushState({ v: "quizIntro" }, ""); renderQuizIntro(); }
+function goQuizPlay() { history.pushState({ v: "quizPlay" }, ""); renderQuizPlay(); }
 // 글자책 안에서 이전/다음 줄 이동은 기록을 쌓지 않고 바꿔치기 — 뒤로가기는 항상 목차로
 function navKanaPage(i) { history.replaceState({ v: "kanaPage", i: i }, ""); renderKanaPage(i); }
 
 window.addEventListener("popstate", (e) => {
+  // 놀이 중 나가면 예약된 다음 문제를 취소한다
+  if (quizTimer) { clearTimeout(quizTimer); quizTimer = null; }
   const s = e.state || { v: "shelf" };
   if (s.v === "reader") renderReader(s.id);
   else if (s.v === "kanaToc") renderKanaToc();
   else if (s.v === "kanaPage") renderKanaPage(s.i);
   else if (s.v === "sync") renderSync();
+  else if (s.v === "quizIntro") renderQuizIntro();
+  else if (s.v === "quizPlay") renderQuizPlay();
   else renderShelf();
 });
 
